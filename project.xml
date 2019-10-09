@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+
+	<meta title="OpenFL Player" package="org.openfl.player" version="1.0.0" company="OpenFL" />
+	<app path="build" />
+
+	<source path="src" />
+
+	<haxelib name="openfl" />
+	
+    <haxelib name="swf" />
+	<haxelib name="format" />
+	<haxelib name="hxp" />
+
+	<assets path="assets" />
+
+</project>
