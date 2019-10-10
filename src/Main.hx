@@ -16,7 +16,7 @@ class Main extends Sprite
 {
 	private var clip:MovieClip;
 	private var currentIndex = -1;
-	private var swfs = [ "assets/nyancat.swf", "assets/allyourbase.swf", "assets/badgerbadger.swf" ];
+	private var swfs = [ "assets/nyancat.swf", "assets/allyourbase.swf", "assets/badgerbadger.swf", "assets/nowheretohide.swf", "assets/kenya.swf" ];
 	
 	public function new()
 	{
@@ -84,6 +84,10 @@ class Main extends Sprite
 		}
 
 		clip = exporter.swfLite.createMovieClip("");
+		var mask = new Sprite();
+		mask.graphics.beginFill(0xFF0000);
+		mask.graphics.drawRect(0, 0, swf.width, swf.height);
+		clip.mask = mask;
 		addChild(clip);
 	}
 	
