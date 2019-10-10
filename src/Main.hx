@@ -2,76 +2,105 @@ package;
 
 import format.swf.exporters.SWFLiteExporter;
 import format.SWF;
-import openfl.display.Sprite;
-import openfl.events.Event;
-import openfl.events.IOErrorEvent;
-import openfl.net.URLLoader;
-import openfl.net.URLRequest;
-import openfl.utils.ByteArray;
-
+import haxe.macro.Compiler;
 import lime.graphics.Image;
 import openfl._internal.formats.swf.SWFLiteLibrary;
 import openfl._internal.symbols.BitmapSymbol;
-import openfl.display.BitmapData;
+import openfl.display.MovieClip;
+import openfl.display.Sprite;
+import openfl.events.MouseEvent;
 import openfl.utils.Assets;
 @:access(lime.utils.AssetLibrary)
 
 class Main extends Sprite
 {
-    public function new()
-    {
-        super();
+	private var clip:MovieClip;
+	private var currentIndex = -1;
+	private var swfs = [ "assets/nyancat.swf", "assets/allyourbase.swf", "assets/badgerbadger.swf" ];
+	
+	public function new()
+	{
+		super();
+		
+		var defineSWF = Compiler.getDefine("swf");
+		if (defineSWF != null)
+		{
+			var asInt = Std.parseInt(defineSWF);
+			if (Std.string(asInt) == defineSWF)
+			{
+				currentIndex = asInt - 1;
+			}
+			else
+			{
+				for (i in 0...swfs.length)
+				{
+					if (swfs[i].indexOf(defineSWF) > -1)
+					{
+						currentIndex = i - 1;
+						break;
+					}
+				}
+			}
+		}
+		
+		nextSWF();
+		
+		stage.addEventListener(MouseEvent.MOUSE_DOWN, stage_onMouseDown);
+		buttonMode = true;
+	}
+	
+	private function loadSWF(path:String):Void
+	{
+		if (clip != null)
+		{
+			removeChild(clip);
+			clip = null;
+		}
+		
+		var bytes = Assets.getBytes(path);
+		var swf = new SWF(bytes);
+		stage.color = swf.backgroundColor;
+		
+		// TODO: No intermediate format
+		var exporter = new SWFLiteExporter(swf.data);
+		var swfLite = exporter.swfLite;
+		var library = new SWFLiteLibrary("test");
+		swfLite.library = library;
+		library.swf = swfLite;
 
-        var bytes = openfl.utils.Assets.getBytes("assets/nyancat.swf");
-         var swf = new SWF(bytes);
-        // TODO: No intermediate format
-        var exporter = new SWFLiteExporter(swf.data);
-        var swfLite = exporter.swfLite;
-        var library = new SWFLiteLibrary("test");
-        swfLite.library = library;
-        library.swf = swfLite;
+		for (id in exporter.bitmaps.keys())
+		{
+			var type = exporter.bitmapTypes.get(id) == BitmapType.PNG ? "png" : "jpg";
+			var symbol:BitmapSymbol = cast swfLite.symbols.get(id);
+			symbol.path = id + "." + type;
+			swfLite.symbols.set(id, symbol);
+			library.cachedImages.set(symbol.path, Image.fromBytes(exporter.bitmaps.get(id)));
 
-        for (id in exporter.bitmaps.keys())
-        {
-            var type = exporter.bitmapTypes.get(id) == BitmapType.PNG ? "png" : "jpg";
-            var symbol:BitmapSymbol = cast swfLite.symbols.get(id);
-            symbol.path = id + "." + type;
-            swfLite.symbols.set(id, symbol);
+			if (exporter.bitmapTypes.get(id) == BitmapType.JPEG_ALPHA)
+			{
+				symbol.alpha = id + "a.png";
+				library.cachedImages.set(symbol.alpha, Image.fromBytes(exporter.bitmapAlpha.get(id)));
+			}
+		}
 
-            library.cachedImages.set(symbol.path, Image.fromBytes(exporter.bitmaps.get(id)));
-
-            if (exporter.bitmapTypes.get(id) == BitmapType.JPEG_ALPHA)
-            {
-                symbol.alpha = id + "a.png";
-
-                library.cachedImages.set(symbol.alpha, Image.fromBytes(exporter.bitmapAlpha.get(id)));
-            }
-        }
-
-        var clip = exporter.swfLite.createMovieClip("");
-        addChild(clip);
-
-        // var loader = new URLLoader();
-        // loader.addEventListener(Event.COMPLETE, loader_onComplete);
-        // loader.addEventListener(IOErrorEvent.IO_ERROR, loader_onError);
-        // loader.load(new URLRequest("https://github.com/openfl/openfl-samples/raw/master/demos/NyanCat/Assets/library.swf"));
-    }
-
-    // private function loader_onComplete(event:Event):Void
-    // {
-    //     var loader:URLLoader = cast event.currentTarget;
-    //     var bytes:ByteArray = loader.data;
-    //     bytes.position = 0;
-    //     trace(bytes.length);
-    //     var swf = new SWF(bytes);
-    //     // TODO: No intermediate format
-    //     var exporter = new SWFLiteExporter(swf.data);
-    //     var clip = exporter.swfLite.createMovieClip("");
-    //     addChild(clip);
-    // }
-
-    // private function loader_onError(event:IOErrorEvent):Void
-    // {
-    //     trace(event);
-    // }
+		clip = exporter.swfLite.createMovieClip("");
+		addChild(clip);
+	}
+	
+	private function nextSWF():Void
+	{
+		currentIndex++;
+		if (currentIndex >= swfs.length)
+		{
+			currentIndex = 0;
+		}
+		loadSWF(swfs[currentIndex]);
+	}
+	
+	// Event Handlers
+	
+	private function stage_onMouseDown(event:MouseEvent):Void
+	{
+		nextSWF();
+	}
 }
