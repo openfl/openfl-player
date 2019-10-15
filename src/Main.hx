@@ -61,6 +61,7 @@ class Main extends Sprite
 		var swf = new SWF(bytes);
 		stage.color = swf.backgroundColor;
 		
+		#if !no_swflite
 		// TODO: No intermediate format
 		var exporter = new SWFLiteExporter(swf.data);
 		var swfLite = exporter.swfLite;
@@ -84,6 +85,10 @@ class Main extends Sprite
 		}
 
 		clip = exporter.swfLite.createMovieClip("");
+		#else
+		clip = new format.swf.instance.MovieClip(swf.data);
+		#end
+		
 		var mask = new Sprite();
 		mask.graphics.beginFill(0xFF0000);
 		mask.graphics.drawRect(0, 0, swf.width, swf.height);
