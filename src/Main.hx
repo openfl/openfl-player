@@ -7,8 +7,13 @@ import openfl.display.MovieClip;
 import openfl.display.Sprite;
 import openfl.events.MouseEvent;
 import openfl.utils.Assets;
-@:access(lime.utils.AssetLibrary)
+#if swflite
+import swf.exporters.SWFLiteExporter;
+import swf.exporters.swflite.SWFLiteLibrary;
+import swf.exporters.swflite.BitmapSymbol;
+#end
 
+@:access(lime.utils.AssetLibrary)
 class Main extends Sprite
 {
 	private var clip:MovieClip;
@@ -58,18 +63,18 @@ class Main extends Sprite
 		var swf = new SWF(bytes);
 		stage.color = swf.backgroundColor;
 		
-		#if use_swflite
+		#if swflite
 		// TODO: No intermediate format
-		var exporter = new swf.exporters.SWFLiteExporter(swf.data);
+		var exporter = new SWFLiteExporter(swf.data);
 		var swfLite = exporter.swfLite;
-		var library = new swf.exporters.swflite.SWFLiteLibrary("test");
+		var library = new SWFLiteLibrary("test");
 		swfLite.library = library;
 		library.swf = swfLite;
 
 		for (id in exporter.bitmaps.keys())
 		{
 			var type = exporter.bitmapTypes.get(id) == BitmapType.PNG ? "png" : "jpg";
-			var symbol:swf.exporters.swflite.BitmapSymbol = cast swfLite.symbols.get(id);
+			var symbol:BitmapSymbol = cast swfLite.symbols.get(id);
 			symbol.path = id + "." + type;
 			swfLite.symbols.set(id, symbol);
 			library.cachedImages.set(symbol.path, Image.fromBytes(exporter.bitmaps.get(id)));
