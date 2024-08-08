@@ -1,29 +1,53 @@
 package;
 
+import openfl.display.DisplayObject;
+import swf.SWFLoader;
 import swf.SWF;
 import haxe.macro.Compiler;
-import lime.graphics.Image;
+import openfl.display.Loader;
 import openfl.display.MovieClip;
 import openfl.display.Sprite;
+import openfl.events.Event;
 import openfl.events.MouseEvent;
+import openfl.net.URLRequest;
 import openfl.utils.Assets;
 #if swflite
 import swf.exporters.SWFLiteExporter;
 import swf.exporters.swflite.SWFLiteLibrary;
 import swf.exporters.swflite.BitmapSymbol;
 #end
+#if (openfl >= "9.5.0")
+import swf.exporters.swflite.SWFLiteLoader;
+import swf.SWFLoader;
+#end
 
 @:access(lime.utils.AssetLibrary)
 class Main extends Sprite
 {
-	private var clip:MovieClip;
+	private var clip:Sprite;
 	private var currentIndex = -1;
+	private var loader:Loader;
 	private var swfs = [ "assets/nyancat.swf", "assets/allyourbase.swf", "assets/badgerbadger.swf", "assets/nowheretohide.swf", "assets/kenya.swf" ];
 	
 	public function new()
 	{
 		super();
 		
+		init();
+
+		#if (openfl >= "9.5.0")
+		Loader.registerLoader(new #if swflite SWFLiteLoader() #else SWFLoader() #end);
+		#end
+		
+		nextSWF();
+		
+		stage.addEventListener(MouseEvent.MOUSE_DOWN, stage_onMouseDown);
+		buttonMode = true;
+	}
+
+	private function init():Void
+	{
+		// -Dswf=1
 		var defineSWF = Compiler.getDefine("swf");
 		if (defineSWF != null)
 		{
@@ -44,13 +68,29 @@ class Main extends Sprite
 				}
 			}
 		}
-		
-		nextSWF();
-		
-		stage.addEventListener(MouseEvent.MOUSE_DOWN, stage_onMouseDown);
-		buttonMode = true;
 	}
 	
+	#if (openfl >= "9.5.0")
+	private function loadSWF(path:String):Void
+	{
+		if (clip != null)
+		{
+			removeChild(clip);
+			clip = null;
+		}
+		
+		if (loader != null)
+		{
+			loader.contentLoaderInfo.removeEventListener(Event.COMPLETE, loader_onComplete);
+		}
+
+		loader = new Loader();
+		loader.contentLoaderInfo.addEventListener(Event.COMPLETE, loader_onComplete);
+		loader.load(new URLRequest(path));
+	}
+	
+	#else
+
 	private function loadSWF(path:String):Void
 	{
 		if (clip != null)
@@ -97,6 +137,7 @@ class Main extends Sprite
 		clip.mask = mask;
 		addChild(clip);
 	}
+	#end
 	
 	private function nextSWF():Void
 	{
@@ -109,6 +150,24 @@ class Main extends Sprite
 	}
 	
 	// Event Handlers
+
+	private function loader_onComplete(event:Event):Void
+	{
+		var width = loader.contentLoaderInfo.width;
+		var height = loader.contentLoaderInfo.height;
+
+		clip = new Sprite();
+		clip.graphics.beginFill(0x000000);
+		clip.graphics.drawRect(0, 0, width, height);
+
+		var mask = new Sprite();
+		mask.graphics.beginFill(0xFF0000);
+		mask.graphics.drawRect(0, 0, width, height);
+		clip.mask = mask;
+
+		clip.addChild(loader.content);
+		addChild(clip);
+	}
 	
 	private function stage_onMouseDown(event:MouseEvent):Void
 	{
